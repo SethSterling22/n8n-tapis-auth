@@ -17,6 +17,7 @@ import type { IFormBoxConfig } from '@/Interface';
 import { MFA_AUTHENTICATION_REQUIRED_ERROR_CODE, VIEWS, MFA_FORM } from '@/app/constants';
 import type { LoginRequestDto } from '@n8n/api-types';
 
+// Mantenemos los tipos pero conceptualmente usaremos emailOrLdapLoginId como el Tapis Username
 export type EmailOrLdapLoginIdAndPassword = Pick<
 	LoginRequestDto,
 	'emailOrLdapLoginId' | 'password'
@@ -41,15 +42,8 @@ const emailOrLdapLoginId = ref('');
 const password = ref('');
 const reportError = ref(false);
 
-const ldapLoginLabel = computed(() => ssoStore.ldapLoginLabel);
-const isLdapLoginEnabled = computed(() => ssoStore.isLdapLoginEnabled);
-const emailLabel = computed(() => {
-	let label = locale.baseText('auth.email');
-	if (isLdapLoginEnabled.value && ldapLoginLabel.value) {
-		label = ldapLoginLabel.value;
-	}
-	return label;
-});
+// Cambio: Etiqueta personalizada para Tapis
+const tapisUsernameLabel = "Tapis Username";
 
 const formConfig: IFormBoxConfig = reactive({
 	title: locale.baseText('auth.signin'),
@@ -60,14 +54,14 @@ const formConfig: IFormBoxConfig = reactive({
 		{
 			name: 'emailOrLdapLoginId',
 			properties: {
-				label: emailLabel.value,
-				type: 'email',
+				label: tapisUsernameLabel, // Now Shows Tapis Username
+				type: 'text',              // Change from 'email' to 'text' to prevent browser validations
 				required: true,
-				...(!isLdapLoginEnabled.value && { validationRules: [{ name: 'VALID_EMAIL' }] }),
+				validationRules: [],       // DELETE VALID_EMAIL so TAPIS username can be valid
 				showRequiredAsterisk: false,
 				validateOnBlur: false,
-				autocomplete: 'email',
-				capitalize: true,
+				autocomplete: 'username',
+				capitalize: false,         // Los usernames suelen ser case-sensitive
 				focusInitially: true,
 			},
 		},
@@ -80,7 +74,7 @@ const formConfig: IFormBoxConfig = reactive({
 				showRequiredAsterisk: false,
 				validateOnBlur: false,
 				autocomplete: 'current-password',
-				capitalize: true,
+				capitalize: false,
 			},
 		},
 	],
@@ -101,14 +95,10 @@ const onEmailPasswordSubmitted = async (form: EmailOrLdapLoginIdAndPassword) => 
 
 const isRedirectSafe = () => {
 	const redirect = getRedirectQueryParameter();
-
-	// Allow local redirects
 	if (redirect.startsWith('/')) {
 		return true;
 	}
-
 	try {
-		// Only allow origin domain redirects
 		const url = new URL(redirect);
 		return url.origin === window.location.origin;
 	} catch {
@@ -127,6 +117,7 @@ const getRedirectQueryParameter = () => {
 const login = async (form: LoginRequestDto) => {
 	try {
 		loading.value = true;
+		// El form.emailOrLdapLoginId aquí contiene el valor del input "Tapis Username"
 		await usersStore.loginWithCreds({
 			emailOrLdapLoginId: form.emailOrLdapLoginId,
 			password: form.password,
@@ -204,7 +195,7 @@ const cacheCredentials = (form: EmailOrLdapLoginIdAndPassword) => {
 			v-if="!showMfaView"
 			:form="formConfig"
 			:form-loading="loading"
-			:with-sso="true"
+			:with-sso="false" 
 			data-test-id="signin-form"
 			@submit="onEmailPasswordSubmitted"
 		/>

@@ -19,6 +19,9 @@ import { MfaService } from '@/mfa/mfa.service';
 import { PostHogClient } from '@/posthog';
 import { AuthlessRequest } from '@/requests';
 import { UserService } from '@/services/user.service';
+// TAPIS usage
+import { TapisAuthService } from './TapisAuthService';
+
 import {
 	getCurrentAuthenticationMethod,
 	isLdapCurrentAuthenticationMethod,
@@ -27,99 +30,92 @@ import {
 	isSsoCurrentAuthenticationMethod,
 } from '@/sso.ee/sso-helpers';
 
+
+
+
 @RestController()
 export class AuthController {
-	constructor(
-		private readonly logger: Logger,
-		private readonly authService: AuthService,
-		private readonly mfaService: MfaService,
-		private readonly userService: UserService,
-		private readonly license: License,
-		private readonly userRepository: UserRepository,
-		private readonly eventService: EventService,
-		private readonly postHog?: PostHogClient,
-	) {}
+    constructor(
+        private readonly logger: Logger,
+        private readonly authService: AuthService,
+        private readonly mfaService: MfaService,
+        private readonly userService: UserService,
+        private readonly license: License,
+        private readonly userRepository: UserRepository,
+        private readonly eventService: EventService,
+        // Inyectamos el servicio de Tapis
+        private readonly tapisAuthService: TapisAuthService, 
+        private readonly postHog?: PostHogClient,
+    ) {}
 
-	/** Log in a user */
-	@Post('/login', { skipAuth: true, rateLimit: true })
-	async login(
-		req: AuthlessRequest,
-		res: Response,
-		@Body payload: LoginRequestDto,
-	): Promise<PublicUser | undefined> {
-		const { emailOrLdapLoginId, password, mfaCode, mfaRecoveryCode } = payload;
+    /** Log in a user */
+    @Post('/login', { skipAuth: true, rateLimit: true })
+    async login(
+        req: AuthlessRequest,
+        res: Response,
+        @Body payload: LoginRequestDto,
+    ): Promise<PublicUser | undefined> {
+        const { emailOrLdapLoginId, password, mfaCode, mfaRecoveryCode } = payload;
 
-		let user: User | undefined;
+        let user: User | undefined;
 
-		let usedAuthenticationMethod = getCurrentAuthenticationMethod();
+        // 1. ELIMINADO: Ya no validamos si es un Email, ahora es un Username de Tapis
+        // if (usedAuthenticationMethod === 'email' && !isEmail(emailOrLdapLoginId)) { ... }
 
-		if (usedAuthenticationMethod === 'email' && !isEmail(emailOrLdapLoginId)) {
-			throw new BadRequestError('Invalid email address');
-		}
+        // 2. Lógica de Autenticación Tapis
+        try {
+            // Intentamos autenticar con Tapis y obtener/crear el usuario en la DB de n8n
+            // user = await this.tapisAuthService.authenticateWithTapis(emailOrLdapLoginId, password);
+			const tapisUser = await this.tapisAuthService.authenticateWithTapis(emailOrLdapLoginId, password);
+			user = tapisUser ?? undefined;
+			
+        } catch (error) {
+            this.logger.error(`Tapis authentication failed for user: ${emailOrLdapLoginId}`);
+            throw new AuthError('Invalid Tapis credentials or Tapis API is down');
+        }
 
-		if (isSamlCurrentAuthenticationMethod() || isOidcCurrentAuthenticationMethod()) {
-			// attempt to fetch user data with the credentials, but don't log in yet
-			const preliminaryUser = await handleEmailLogin(emailOrLdapLoginId, password);
-			// if the user is an owner, continue with the login
-			if (
-				preliminaryUser?.role.slug === GLOBAL_OWNER_ROLE.slug ||
-				preliminaryUser?.settings?.allowSSOManualLogin
-			) {
-				user = preliminaryUser;
-				usedAuthenticationMethod = 'email';
-			} else {
-				throw new AuthError('SSO is enabled, please log in with SSO');
-			}
-		} else if (isLdapCurrentAuthenticationMethod()) {
-			const preliminaryUser = await handleEmailLogin(emailOrLdapLoginId, password);
-			if (preliminaryUser?.role.slug === GLOBAL_OWNER_ROLE.slug) {
-				user = preliminaryUser;
-				usedAuthenticationMethod = 'email';
-			} else {
-				const { LdapService } = await import('@/ldap.ee/ldap.service.ee');
-				user = await Container.get(LdapService).handleLdapLogin(emailOrLdapLoginId, password);
-			}
-		} else {
-			user = await handleEmailLogin(emailOrLdapLoginId, password);
-		}
+        // 3. Procesar el resultado de la autenticación
+        if (user) {
+            // Manejo de MFA (opcional, si el usuario tiene MFA habilitado en n8n)
+            if (user.mfaEnabled) {
+                if (!mfaCode && !mfaRecoveryCode) {
+                    throw new AuthError('MFA Error', 998);
+                }
 
-		if (user) {
-			if (user.mfaEnabled) {
-				if (!mfaCode && !mfaRecoveryCode) {
-					throw new AuthError('MFA Error', 998);
-				}
+                const isMfaCodeOrMfaRecoveryCodeValid = await this.mfaService.validateMfa(
+                    user.id,
+                    mfaCode,
+                    mfaRecoveryCode,
+                );
+                if (!isMfaCodeOrMfaRecoveryCodeValid) {
+                    throw new AuthError('Invalid mfa token or recovery code');
+                }
+            }
 
-				const isMfaCodeOrMfaRecoveryCodeValid = await this.mfaService.validateMfa(
-					user.id,
-					mfaCode,
-					mfaRecoveryCode,
-				);
-				if (!isMfaCodeOrMfaRecoveryCodeValid) {
-					throw new AuthError('Invalid mfa token or recovery code');
-				}
-			}
+            // Emitimos la cookie de n8n para mantener la sesión
+            this.authService.issueCookie(res, user, !!user.mfaEnabled, req.browserId);
 
-			// If user.mfaEnabled is enabled we checked for the MFA code, therefore it was used during this login execution
-			this.authService.issueCookie(res, user, user.mfaEnabled, req.browserId);
+            this.eventService.emit('user-logged-in', {
+                user,
+                authenticationMethod: 'email', // Mantenemos 'email' por compatibilidad interna de n8n
+            });
 
-			this.eventService.emit('user-logged-in', {
-				user,
-				authenticationMethod: usedAuthenticationMethod,
-			});
+            return await this.userService.toPublic(user, {
+                posthog: this.postHog,
+                withScopes: true,
+                mfaAuthenticated: !!user.mfaEnabled,
+            });
+        }
 
-			return await this.userService.toPublic(user, {
-				posthog: this.postHog,
-				withScopes: true,
-				mfaAuthenticated: user.mfaEnabled,
-			});
-		}
-		this.eventService.emit('user-login-failed', {
-			authenticationMethod: usedAuthenticationMethod,
-			userEmail: emailOrLdapLoginId,
-			reason: 'wrong credentials',
-		});
-		throw new AuthError('Wrong username or password. Do you have caps lock on?');
-	}
+        // 4. Si no hay usuario, falló el login
+        this.eventService.emit('user-login-failed', {
+            authenticationMethod: 'email',
+            userEmail: emailOrLdapLoginId,
+            reason: 'wrong tapis credentials',
+        });
+        
+        throw new AuthError('Wrong Tapis username or password.');
+    }
 
 	/** Check if the user is already logged in */
 	@Get('/login', {

@@ -327,3 +327,4 @@ export class AuthService {
 		return this.globalConfig.userManagement.jwtSessionDurationHours * Time.hours.toSeconds;
 	}
 }
+

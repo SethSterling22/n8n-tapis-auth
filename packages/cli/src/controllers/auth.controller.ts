@@ -8,6 +8,7 @@ import { isEmail } from 'class-validator';
 import { Response } from 'express';
 
 import { handleEmailLogin } from '@/auth';
+
 import { AuthService } from '@/auth/auth.service';
 import { RESPONSE_ERROR_MESSAGES } from '@/constants';
 import { AuthError } from '@/errors/response-errors/auth.error';
@@ -19,8 +20,9 @@ import { MfaService } from '@/mfa/mfa.service';
 import { PostHogClient } from '@/posthog';
 import { AuthlessRequest } from '@/requests';
 import { UserService } from '@/services/user.service';
+
 // TAPIS usage
-import { TapisAuthService } from './TapisAuthService';
+import { TapisAuthService } from '../services/tapis-auth.service';
 
 import {
 	getCurrentAuthenticationMethod,
@@ -29,7 +31,6 @@ import {
 	isSamlCurrentAuthenticationMethod,
 	isSsoCurrentAuthenticationMethod,
 } from '@/sso.ee/sso-helpers';
-
 
 
 
@@ -59,13 +60,9 @@ export class AuthController {
 
         let user: User | undefined;
 
-        // 1. ELIMINADO: Ya no validamos si es un Email, ahora es un Username de Tapis
-        // if (usedAuthenticationMethod === 'email' && !isEmail(emailOrLdapLoginId)) { ... }
-
-        // 2. Lógica de Autenticación Tapis
+        // 2. Authentication Logic with Tapis
         try {
-            // Intentamos autenticar con Tapis y obtener/crear el usuario en la DB de n8n
-            // user = await this.tapisAuthService.authenticateWithTapis(emailOrLdapLoginId, password);
+            // Try to authenticate with Tapis and obtain/create the User for N8N
 			const tapisUser = await this.tapisAuthService.authenticateWithTapis(emailOrLdapLoginId, password);
 			user = tapisUser ?? undefined;
 			
@@ -74,9 +71,9 @@ export class AuthController {
             throw new AuthError('Invalid Tapis credentials or Tapis API is down');
         }
 
-        // 3. Procesar el resultado de la autenticación
+        // 3. Process the Auth result
         if (user) {
-            // Manejo de MFA (opcional, si el usuario tiene MFA habilitado en n8n)
+            // MFA manage by N8N (optional)
             if (user.mfaEnabled) {
                 if (!mfaCode && !mfaRecoveryCode) {
                     throw new AuthError('MFA Error', 998);
@@ -92,12 +89,12 @@ export class AuthController {
                 }
             }
 
-            // Emitimos la cookie de n8n para mantener la sesión
+            // Don't use the N8N Cookie to maintain session
             this.authService.issueCookie(res, user, !!user.mfaEnabled, req.browserId);
 
             this.eventService.emit('user-logged-in', {
                 user,
-                authenticationMethod: 'email', // Mantenemos 'email' por compatibilidad interna de n8n
+                authenticationMethod: 'email', // Keep 'email' for internal N8N compatibility
             });
 
             return await this.userService.toPublic(user, {
@@ -107,14 +104,14 @@ export class AuthController {
             });
         }
 
-        // 4. Si no hay usuario, falló el login
+        // 4. Is there's no user, Login error
         this.eventService.emit('user-login-failed', {
             authenticationMethod: 'email',
             userEmail: emailOrLdapLoginId,
             reason: 'wrong tapis credentials',
         });
         
-        throw new AuthError('Wrong Tapis username or password.');
+        throw new AuthError('Wrong Tapis Username or Password.');
     }
 
 	/** Check if the user is already logged in */

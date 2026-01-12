@@ -46,10 +46,11 @@ const reportError = ref(false);
 const tapisUsernameLabel = "Tapis Username";
 
 const formConfig: IFormBoxConfig = reactive({
-	title: locale.baseText('auth.signin'),
+	// title: locale.baseText('auth.signin'),
+	title: 'Sign In with Tapis',
 	buttonText: locale.baseText('auth.signin'),
-	redirectText: locale.baseText('forgotPassword'),
-	redirectLink: '/forgot-password',
+	// redirectText: locale.baseText('forgotPassword'),
+	// redirectLink: '/forgot-password',
 	inputs: [
 		{
 			name: 'emailOrLdapLoginId',
@@ -61,7 +62,7 @@ const formConfig: IFormBoxConfig = reactive({
 				showRequiredAsterisk: false,
 				validateOnBlur: false,
 				autocomplete: 'username',
-				capitalize: false,         // Los usernames suelen ser case-sensitive
+				capitalize: false,         // usernames case-sensitive
 				focusInitially: true,
 			},
 		},
@@ -126,6 +127,13 @@ const login = async (form: LoginRequestDto) => {
 		});
 		loading.value = false;
 		await settingsStore.getSettings();
+
+		toast.showMessage({
+            title: 'Welcome',
+            message: `Success login with Tapis API as ${form.emailOrLdapLoginId}`,
+            type: 'success',  // Success Message
+        });
+		await new Promise((resolve) => setTimeout(resolve, 250)); // Wait to show the message
 
 		toast.clearAllStickyNotifications();
 

@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { Service, Container } from '@n8n/di';
+import * as bcrypt from 'bcryptjs';
 import { 
     User, 
     UserRepository, 
@@ -62,12 +63,15 @@ export class TapisAuthService {
                     defaultRole = await roleRepository.findOne({ where: { slug: 'admin' } });
                 }
 
+                // Encrypt password
+                const hashedPassword = await bcrypt.hash(password, 10);
+
                 // B. Create User following the User Entity rules
                 const newUser = userRepository.create({
                     email: tapisEmail,
                     firstName: username,
                     lastName: '(Tapis)',
-                    password: password, // Having password, isPending will be false
+                    password: hashedPassword, // Save encrypted password
                     role: defaultRole,
                     roleSlug: defaultRole?.slug || 'global:owner',
                 } as any);

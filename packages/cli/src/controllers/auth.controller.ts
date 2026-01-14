@@ -1,13 +1,13 @@
 import { LoginRequestDto, ResolveSignupTokenQueryDto } from '@n8n/api-types';
 import { Logger } from '@n8n/backend-common';
 import type { User, PublicUser } from '@n8n/db';
-import { UserRepository, AuthenticatedRequest, GLOBAL_OWNER_ROLE } from '@n8n/db';
+import { UserRepository, AuthenticatedRequest, /*GLOBAL_OWNER_ROLE */ } from '@n8n/db';
 import { Body, Get, Post, Query, RestController } from '@n8n/decorators';
-import { Container } from '@n8n/di';
-import { isEmail } from 'class-validator';
+// import { Container } from '@n8n/di';
+// import { isEmail } from 'class-validator';
 import { Response } from 'express';
 
-import { handleEmailLogin } from '@/auth';
+// import { handleEmailLogin } from '@/auth';
 
 import { AuthService } from '@/auth/auth.service';
 import { RESPONSE_ERROR_MESSAGES } from '@/constants';
@@ -25,10 +25,10 @@ import { UserService } from '@/services/user.service';
 import { TapisAuthService } from '../services/tapis-auth.service';
 
 import {
-	getCurrentAuthenticationMethod,
-	isLdapCurrentAuthenticationMethod,
-	isOidcCurrentAuthenticationMethod,
-	isSamlCurrentAuthenticationMethod,
+	// getCurrentAuthenticationMethod,
+	// isLdapCurrentAuthenticationMethod,
+	// isOidcCurrentAuthenticationMethod,
+	// isSamlCurrentAuthenticationMethod,
 	isSsoCurrentAuthenticationMethod,
 } from '@/sso.ee/sso-helpers';
 

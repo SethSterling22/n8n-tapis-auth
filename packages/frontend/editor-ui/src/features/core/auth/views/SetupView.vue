@@ -13,12 +13,16 @@ import { VIEWS } from '@/app/constants';
 
 import AuthView from './AuthView.vue';
 
+
+
 const settingsStore = useSettingsStore();
 const usersStore = useUsersStore();
 
 const toast = useToast();
 const locale = useI18n();
 const router = useRouter();
+
+
 
 const loading = ref(false);
 const formConfig: IFormBoxConfig = reactive({

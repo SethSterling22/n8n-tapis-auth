@@ -9,6 +9,8 @@ import { useUsersStore } from '@/features/settings/users/users.store';
 import { useI18n } from '@n8n/i18n';
 import { useRoute, useRouter } from 'vue-router';
 
+
+
 const usersStore = useUsersStore();
 
 const toast = useToast();
@@ -80,6 +82,7 @@ const inviteMessage = computed(() => {
 });
 
 onMounted(async () => {
+
 	const inviterIdParam = getQueryParameter('inviterId');
 	const inviteeIdParam = getQueryParameter('inviteeId');
 	const tokenParam = getQueryParameter('token');
@@ -150,10 +153,10 @@ function getQueryParameter(key: 'inviterId' | 'inviteeId' | 'token'): string | n
 </script>
 
 <template>
-	<AuthView
-		:form="FORM_CONFIG"
-		:form-loading="loading"
-		:subtitle="inviteMessage"
-		@submit="onSubmit"
-	/>
+		<AuthView
+			:form="FORM_CONFIG"
+			:form-loading="loading"
+			:subtitle="inviteMessage"
+			@submit="onSubmit"
+		/>
 </template>

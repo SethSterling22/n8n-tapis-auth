@@ -17,7 +17,7 @@ import type { IFormBoxConfig } from '@/Interface';
 import { MFA_AUTHENTICATION_REQUIRED_ERROR_CODE, VIEWS, MFA_FORM } from '@/app/constants';
 import type { LoginRequestDto } from '@n8n/api-types';
 
-// Mantenemos los tipos pero conceptualmente usaremos emailOrLdapLoginId como el Tapis Username
+// Use emailOrLdapLoginId as Tapis Username
 export type EmailOrLdapLoginIdAndPassword = Pick<
 	LoginRequestDto,
 	'emailOrLdapLoginId' | 'password'

@@ -97,7 +97,11 @@ export const useSettingsStore = defineStore(STORES.SETTINGS, () => {
 		() => isAiAssistantEnabled.value || isAiBuilderEnabled.value,
 	);
 
-	const showSetupPage = computed(() => userManagement.value.showSetupOnFirstLoad);
+	// BYPASS the Setup
+	////////////////////////////////////////////////////////////////////////////////////////
+	// const showSetupPage = computed(() => userManagement.value.showSetupOnFirstLoad);
+	const showSetupPage = computed(() => false); // Force exit with False
+	////////////////////////////////////////////////////////////////////////////////////////
 
 	const deploymentType = computed(() => settings.value.deployment?.type || 'default');
 
@@ -231,6 +235,8 @@ export const useSettingsStore = defineStore(STORES.SETTINGS, () => {
 	const setSaveDataProgressExecution = (newValue: boolean) => {
 		saveDataProgressExecution.value = newValue;
 	};
+
+
 
 	const getSettings = async () => {
 		const rootStore = useRootStore();

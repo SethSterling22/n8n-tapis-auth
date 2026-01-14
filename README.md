@@ -37,9 +37,9 @@ This repository includes TAPIS (Texas Advanced Computing Center API Services) au
 
 ### Prerequisites
 
-1. **Node.js** (v22.16 or newer)
+1. **Node.js** (v22.16 or newer) 
    ```bash
-   node --version  # Should be >= 22.16
+   node --version  # Should be >= 22.16 (23.0 was tested and works)
    ```
 
 2. **pnpm** (v10.22.0 or newer)
@@ -54,12 +54,6 @@ This repository includes TAPIS (Texas Advanced Computing Center API Services) au
    ```bash
    npm install -g pnpm@10.22.0
    ```
-
-3. **Build Tools** (if needed)
-   - **macOS**: No additional tools required
-   - **Linux (Debian/Ubuntu)**: `apt-get install -y build-essential python`
-   - **Linux (CentOS)**: `yum install gcc gcc-c++ make`
-   - **Windows**: `npm add -g windows-build-tools`
 
 ### Step-by-Step Setup
 
@@ -99,46 +93,31 @@ This builds all TypeScript code, processes assets, and prepares the application 
 
 #### 4. Set Up Environment Variables
 
-Create a `.env` file in the root directory with the following TAPIS configuration:
+Create a `./packages/cli/bin/.env.tapis` file in the root directory with the following TAPIS configuration:
 
 ```bash
 # TAPIS API Configuration
-TAPIS_BASE_URL=https://portals.tapis.io
-TAPIS_CLIENT_ID=
-TAPIS_CLIENT_SECRET=
-TAPIS_SCOPE=PRODUCTION
-VITE_TAPIS_API_BASE_URL=https://portals.tapis.io
+TAPIS_BASE_URL = 'https://portals.tapis.io'
+TAPIS_AUTH_ENDPOINT = '/v3/oauth2/tokens'
 ```
 
 **Environment Variables Description:**
 
-- **`TAPIS_BASE_URL`** (Required): The base URL for the TAPIS API portal. This is where authentication and user information requests are sent. Default: `https://portals.tapis.io`
+- **`TAPIS_BASE_URL`** (Required): The base URL for the TAPIS API. This is where authentication and user information requests are sent. Default: `https://portals.tapis.io`
   
-- **`TAPIS_CLIENT_ID`** (Optional): Your TAPIS client ID if your setup requires it. Some TAPIS configurations may not require this. Leave empty if not needed.
+- **`TAPIS_AUTH_ENDPOINT`** (Required): TAPIS API Endpoint to verify the credentials.
   
-- **`TAPIS_CLIENT_SECRET`** (Optional): Your TAPIS client secret if your setup requires it. Some TAPIS configurations may not require this. Leave empty if not needed.
-  
-- **`TAPIS_SCOPE`** (Optional): The OAuth scope for TAPIS authentication. Default: `PRODUCTION`. This determines what level of access the tokens will have.
-  
-- **`VITE_TAPIS_API_BASE_URL`** (Optional): Frontend TAPIS API base URL. Used by Vite in development mode for frontend requests. If different from backend URL, set this. Default: `https://portals.tapis.io`
-
 **Quick Setup:**
 
-You can create the `.env` file manually:
+You can create the `./packages/cli/bin/.env.tapis` file manually:
 
 ```bash
 cat > .env << 'EOF'
-TAPIS_BASE_URL=https://portals.tapis.io
-TAPIS_CLIENT_ID=
-TAPIS_CLIENT_SECRET=
-TAPIS_SCOPE=PRODUCTION
-VITE_TAPIS_API_BASE_URL=https://portals.tapis.io
+TAPIS_BASE_URL = 'https://portals.tapis.io'
+TAPIS_AUTH_ENDPOINT = '/v3/oauth2/tokens'
 EOF
 ```
 
-Or copy from the example file (see `ENV_EXAMPLE.md` for more details).
-
-**Important:** The `.env` file is gitignored and won't be committed to the repository. Make sure to set these values according to your TAPIS environment.
 
 #### 5. Run the Application
 
@@ -188,7 +167,6 @@ With TAPIS authentication configured:
 - Users can log in using their **TAPIS username and password** (not email/password)
 - The system authenticates against the TAPIS API
 - User records are automatically created/updated from TAPIS user information
-- The TAPIS JWT token is stored and used for session management
 
 **Login Flow:**
 1. User enters username and password in the login form
@@ -224,9 +202,9 @@ pnpm typecheck
 ```
 
 **Environment Variables Not Loading:**
-- Ensure `.env` file is in the project root
+- Ensure `./packages/cli/bin/.env.tapis` file is in the project root
 - Check that variables are set correctly (no quotes needed for values)
-- Restart the application after changing `.env`
+- Restart the application after changing `./packages/cli/bin/.env.tapis`
 
 **TAPIS Authentication Issues:**
 - Verify `TAPIS_BASE_URL` is correct

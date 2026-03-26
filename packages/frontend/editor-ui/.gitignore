@@ -28,3 +28,5 @@ src/components.d.ts
 
 # Build artifacts
 .build/
+.pnpm-store/
+node_modules/

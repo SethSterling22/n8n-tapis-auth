@@ -50,28 +50,35 @@ describe('SigninView', () => {
 		usersStore.loginWithCreds.mockResolvedValueOnce();
 
 		const { getByRole, queryByTestId, container } = renderComponent();
-		const emailInput = container.querySelector('input[type="email"]');
+		// Change, use username to Login with TAPIS
+		const usernameInput = container.querySelector('input[name="username"]') || container.querySelector('input[type="text"]');
+		// const emailInput = container.querySelector('input[type="email"]');
 		const passwordInput = container.querySelector('input[type="password"]');
 		const submitButton = getByRole('button', { name: 'Sign in' });
 
-		if (!emailInput || !passwordInput) {
+		// if (!emailInput || !passwordInput) {
+		if (!usernameInput || !passwordInput) {
 			throw new Error('Inputs not found');
 		}
 
 		expect(queryByTestId('mfa-login-form')).not.toBeInTheDocument();
 
-		expect(emailInput).toBeVisible();
+		// expect(emailInput).toBeVisible();
+		expect(usernameInput).toBeVisible();
 		expect(passwordInput).toBeVisible();
 
 		// TODO: Remove manual tabbing when the following issue is fixed (it should fail the test anyway)
 		// https://github.com/testing-library/vue-testing-library/issues/317
 		await userEvent.tab();
-		expect(document.activeElement).toBe(emailInput);
+		// expect(document.activeElement).toBe(emailInput);
+		expect(document.activeElement).toBe(usernameInput);
 
-		await userEvent.type(emailInput, 'test@n8n.io');
+		// await userEvent.type(emailInput, 'test@n8n.io');
+		await userEvent.type(usernameInput, 'tapis_user_123');
 		await userEvent.type(passwordInput, 'password');
 
 		await userEvent.click(submitButton);
+
 	};
 
 	beforeEach(() => {
@@ -91,11 +98,18 @@ describe('SigninView', () => {
 		expect(() => renderComponent()).not.toThrow();
 	});
 
-	it('should show and submit email/password form (happy path)', async () => {
+	// it('should show and submit email/password form (happy path)', async () => {
+	// 	await signInWithValidUser();
+
+	it('should show and submit username/password form (Tapis path)', async () => {
 		await signInWithValidUser();
 
+		// expect(usersStore.loginWithCreds).toHaveBeenCalledWith({
+		// 	emailOrLdapLoginId: 'test@n8n.io',
+		// 	password: 'password',
 		expect(usersStore.loginWithCreds).toHaveBeenCalledWith({
-			emailOrLdapLoginId: 'test@n8n.io',
+			// The BackEnd will receive the username  in this field or a new one
+			emailOrLdapLoginId: 'tapis_user_123', 
 			password: 'password',
 			mfaCode: undefined,
 			mfaRecoveryCode: undefined,
@@ -107,6 +121,7 @@ describe('SigninView', () => {
 
 		expect(router.push).toHaveBeenCalledWith('/home/workflows');
 	});
+
 
 	describe('when redirect query parameter is set', () => {
 		const ORIGIN_URL = 'https://n8n.local';
